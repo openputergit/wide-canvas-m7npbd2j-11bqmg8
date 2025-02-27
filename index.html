@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardio S - AI Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
+
+    <style>
+        .neo-brutalism {
+            border: 3px solid black;
+            box-shadow: 5px 5px 0px black;
+            transition: all 0.2s ease;
+        }
+        .neo-brutalism:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px black;
+        }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #f3e5f5;
+        }
+        .message {
+            transition: transform 0.3s ease;
+        }
+        .message:active {
+            transform: scale(0.98);
+        }
+        .time-stamp {
+            display: none;
+        }
+        .message:active .time-stamp {
+            display: block;
+        }
+        #loginPage {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        }
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80% { content: '....'; }
+            100% { content: '.....'; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Login Page -->
+    <div id="loginPage" class="fixed inset-0 flex items-center justify-center z-50">
+        <div class="bg-white neo-brutalism p-8 rounded-lg max-w-md w-full mx-4">
+            <h1 class="text-3xl font-bold mb-6 text-center">Welcome to Cardio S</h1>
+            <p class="text-center mb-8">Please sign in to continue</p>
+            <div class="g-signin2 flex justify-center" data-onsuccess="onSignIn"></div>
+            <div class="mt-8 text-center text-sm text-gray-600">
+                Powered by Advanced AI Technology
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div id="chatInterface" class="hidden">
+        <!-- Header -->
+        <header class="bg-black text-white p-4 neo-brutalism">
+            <div class="container mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-orange-500 rounded-full neo-brutalism"></div>
+                    <h1 class="text-2xl font-bold">Cardio S</h1>
+                </div>
+                <button onclick="signOut()" class="bg-orange-500 px-4 py-2 rounded neo-brutalism text-white">
+                    Sign Out
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <main class="container mx-auto p-4 max-w-4xl">
+            <div id="chatMessages" class="space-y-4 mb-4 h-[calc(100vh-240px)] overflow-y-auto p-4">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="bg-white p-4 neo-brutalism rounded-lg">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="messageInput" 
+                           class="flex-1 p-3 border-2 border-black rounded neo-brutalism focus:outline-none"
+                           placeholder="Ask anything about the PDFs...">
+                    <button onclick="sendMessage()" 
+                            class="bg-orange-500 p-3 rounded neo-brutalism">
+                        <i class="bi bi-send-fill text-white"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="messageSound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
+    <audio id="deleteSound" src="https://assets.mixkit.co/active_storage/sfx/2356/2356-preview.mp3"></audio>
+
+    <script>
+        let isAuthenticated = false;
+        
+        function onSignIn(googleUser) {
+            isAuthenticated = true;
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('chatInterface').classList.remove('hidden');
+            
+            // Store user info
+            const profile = googleUser.getBasicProfile();
+            localStorage.setItem('userProfile', JSON.stringify({
+                name: profile.getName(),
+                image: profile.getImageUrl(),
+                email: profile.getEmail()
+            }));
+        }
+
+        function signOut() {
+            const auth2 = gapi.auth2.getAuthInstance();
+            auth2.signOut().then(() => {
+                isAuthenticated = false;
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('chatInterface').classList.add('hidden');
+                localStorage.removeItem('userProfile');
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Play send sound
+            document.getElementById('messageSound').play();
+
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+
+            // Simulate AI thinking
+            setTimeout(() => {
+                showTypingIndicator();
+                // Simulate AI response after 1-2 seconds
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    addMessage("This is a simulated AI response based on the PDF content. In a real implementation, this would be connected to the AI backend with PDF context.", 'assistant');
+                }, 1500 + Math.random() * 1000);
+            }, 300);
+        }
+
+        function addMessage(text, sender) {
+            const chat = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            messageDiv.className = `message flex items-start gap-3 ${sender === 'user' ? 'flex-row-reverse' : ''}`;
+            
+            const profile = sender === 'user' ? 
+                `<img src="${JSON.parse(localStorage.getItem('userProfile')).image}" class="w-10 h-10 rounded-full neo-brutalism">` :
+                `<div class="w-10 h-10 rounded-full bg-purple-300 neo-brutalism flex items-center justify-center">
+                    <i class="bi bi-robot"></i>
+                </div>`;
+
+            messageDiv.innerHTML = `
+                ${profile}
+                <div class="max-w-[70%] break-words">
+                    <div class="bg-${sender === 'user' ? 'orange-500 text-white' : 'white'} p-3 rounded-lg neo-brutalism">
+                        ${text}
+                    </div>
+                    <div class="time-stamp text-xs text-gray-500 mt-1">${timestamp}</div>
+                </div>
+            `;
+
+            messageDiv.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (confirm('Delete this message?')) {
+                    document.getElementById('deleteSound').play();
+                    messageDiv.remove();
+                }
+            });
+
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chat = document.getElementById('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.id = 'typingIndicator';
+            indicator.className = 'flex items-start gap-3';
+            indicator.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-purple-300 neo-brutalism flex items-center justify-center">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="bg-white p-3 rounded-lg neo-brutalism">
+                    <span class="loading-dots">Thinking</span>
+                </div>
+            `;
+            chat.appendChild(indicator);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        // Handle enter key in input
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
